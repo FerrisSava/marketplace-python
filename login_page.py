@@ -1,8 +1,13 @@
 import tkinter as tk
+import mysql.connector
 from tkinter import messagebox
-users_db = {
-    "admin":{"password":"admin","role":"admin"}
-}
+database = mysql.connector.connect(host = "localhost",user = "root",password = "", database = "marketplace")
+db= database
+cursor = db.cursor()
+cursor.execute("SELECT * FROM users")
+for row in cursor.fetchall() :
+    print(row)
+
 current_user = None
 
 class loginPage:
@@ -71,15 +76,23 @@ class loginPage:
     def register(self):
         username = self.username_reg.get()
         password =self.password_reg.get()
-        
-        if username in users_db:
+        db= database
+        cursor = db.cursor()
+        cursor.execute("SELECT username FROM users WHERE username = %s",(username,))
+        result = cursor.fetchone()
+
+        print(username)
+        print(password)
+    
+        if result:
             messagebox.showerror("error", "username sudah di pakai")
 
         elif username == "" or password == "" :
             messagebox.showwarning("warning", "kolom tidak boleh kosong")
 
         else:
-            users_db[username] = {"password":password, "role":"user"}
+            cursor.execute("INSERT INTO users (username,password,role) VALUES (%s,%s,'user')",(username,password,))
+            db.commit()
             messagebox.showinfo("sukses", "berhasil membuat akun")
             self.show_login()
     
@@ -88,15 +101,19 @@ class loginPage:
         password = self.password_login.get()
 
         global current_user
+        db= database
+        cursor = db.cursor()
+        cursor.execute("SELECT username, role FROM users WHERE username = %s AND password = %s", (username,password))
+        result = cursor.fetchone()
 
-        if username in users_db and users_db[username]["password"] == password:
-            current_user = username
-            current_role = users_db[username]["role"]
+        if result : 
+            current_user = result[0]
+            current_role = result[1]
             if current_role == "admin":
                 self.show_dasboard_admin()
             else:
                 self.show_dasboard_user()
-            
+           
         
         else:
             messagebox.showerror("error", "username atau password salah")
